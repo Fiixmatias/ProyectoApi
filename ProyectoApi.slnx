@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Elementos de la solución/">
+    <File Path="gitignore.txt" />
+  </Folder>
+  <Project Path="ProyectoApi.Application/ProyectoApi.Application.csproj" Id="c22e26ee-8ce3-4f6e-a08c-013d68734451" />
+  <Project Path="ProyectoApi.Domain/ProyectoApi.Domain.csproj" Id="96ae4934-36ac-4b83-a7a8-56155df98479" />
+  <Project Path="ProyectoApi.Infrastructure/ProyectoApi.Infrastructure.csproj" Id="79ec304f-f137-4488-b271-fd98d445b002" />
+  <Project Path="ProyectoApi/ProyectoApi.csproj" />
+</Solution>
