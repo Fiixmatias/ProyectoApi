@@ -10,8 +10,15 @@ using ProyectoApi.Domain.Interfaces;
 using ProyectoApi.Infrastructure.Repositories;
 using System.Text;
 using ProyectoApi.Middleware;
+using Serilog;
 
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog();
 var configuration = builder.Configuration;
 
 // ----------------------------------
@@ -135,4 +142,16 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+try
+{
+    Log.Information("Iniciando API...");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "La aplicación falló al iniciar");
+}
+finally
+{
+    Log.CloseAndFlush();
+}

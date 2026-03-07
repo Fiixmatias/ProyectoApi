@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ProyectoApi.Application.Common;
 using ProyectoApi.Application.DTOs;
 using ProyectoApi.Application.Interfaces;
+using System.Security.Claims;
 
 namespace ProyectoApi.Controllers
 {
@@ -16,9 +18,6 @@ namespace ProyectoApi.Controllers
             _usuarioService = usuarioService;
         }
 
-        [HttpGet]
-        [Authorize]
-        
         [HttpGet("{id}")]
         public async Task<ActionResult<UsuarioDto>> getUsuario(int id)
         {
@@ -31,6 +30,7 @@ namespace ProyectoApi.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult<UsuarioDto>> createUsuario(CreateUsuarioDto dto)
         {
             var result = await _usuarioService.CreateAsync(dto);
@@ -50,8 +50,33 @@ namespace ProyectoApi.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<IActionResult> UpdateUsuario(int id , UpdateUsuarioDto dto)
         {
+            var userId = 0;
+            try
+            {
+                userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            }
+            catch
+            {
+                return Result.Failure("InvalidUserId").Error switch
+                {
+                    "InvalidUserId" => BadRequest("El ID del usuario no es válido."),
+                    _ => StatusCode(400)
+                };
+            }
+            
+            if(userId != id)
+            {
+                return Result.Failure("InvalidUserId").Error switch
+                {
+                    "InvalidUserId" => BadRequest("No tienes permiso para actualizar este usuario."),
+                    _ => StatusCode(400)
+                };
+            }
+            
+
             var result = await _usuarioService.UpdateAsync(id, dto);
 
             if (!result.IsSuccess)
@@ -68,6 +93,7 @@ namespace ProyectoApi.Controllers
             return NoContent();
         }
         [HttpDelete("{id}")]
+        [Authorize]
         public async Task<IActionResult> DeleteUsuario(int id)
         {
             var eliminado = await _usuarioService.DeleteAsync(id);

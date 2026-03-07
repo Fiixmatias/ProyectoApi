@@ -1,5 +1,7 @@
 ﻿
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ProyectoApi.Application.Common;
 using ProyectoApi.Application.DTOs;
 using ProyectoApi.Application.Interfaces;
@@ -11,14 +13,16 @@ namespace ProyectoApi.Application.Services
 {
     public class UsuarioService : IUsuarioService
     {
+        private readonly ILogger<UsuarioService> _logger;
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly ITokenService _tokenService;
         private readonly IPasswordHasher _passwordHasher;
-        public UsuarioService(IUsuarioRepository usuarioRepository ,ITokenService tokenService,IPasswordHasher passwordHasher)
+        public UsuarioService(IUsuarioRepository usuarioRepository ,ITokenService tokenService,IPasswordHasher passwordHasher, ILogger<UsuarioService> logger)
         {
             _usuarioRepository = usuarioRepository;
             _tokenService = tokenService;
             _passwordHasher = passwordHasher;
+            _logger = logger;
         }
         // Crear Usuario
         public async Task<Result<UsuarioDto>> CreateAsync(CreateUsuarioDto dto)
@@ -26,6 +30,7 @@ namespace ProyectoApi.Application.Services
             var existe = await _usuarioRepository.ExistEmail(dto.Email);
 
             if (existe)
+                _logger.LogWarning("Intento de crear usuario con Emial duplicado {Email}",dto.Email);
                 return Result<UsuarioDto>.Failure("EmailDuplicado");
 
             var usuario = new Usuario
@@ -39,6 +44,7 @@ namespace ProyectoApi.Application.Services
 
                  await _usuarioRepository.AddAsync(usuario);
                  await _usuarioRepository.SaveChangesAsync();
+            _logger.LogInformation("Usuario creado exitosamente con id {UsuarioId} y Email {Email}",usuario.Id,usuario.Email);
 
             var usuarioDto = new UsuarioDto
             {
@@ -50,6 +56,7 @@ namespace ProyectoApi.Application.Services
             return Result<UsuarioDto>.Success(usuarioDto);
         }
         // Eliminar Usuario
+        [Authorize(Roles = "Admin")]
         public async Task<bool> DeleteAsync(int id)
         {
             var usuario = await _usuarioRepository.GetByIdAsync(id);
@@ -57,8 +64,10 @@ namespace ProyectoApi.Application.Services
                 return false;
             }
             await _usuarioRepository.DeleteAsync(usuario);
+       
             await _usuarioRepository.SaveChangesAsync();
-            
+            _logger.LogInformation("Usuario Eliminado con el id {UsuarioId}", usuario.Id);
+
             return true;
         }
         //Obtener Usuario por ID
@@ -88,11 +97,13 @@ namespace ProyectoApi.Application.Services
                
 
             if (usuario == null || !usuario.Activo)
-                return null;
+            _logger.LogWarning("Inteto de login fallido para el Email {Email}", dto.Email);
+            return null;
 
             bool passwordValida = _passwordHasher.Verify(dto.Password,usuario.PassWordHash);
 
             if (!passwordValida)
+                _logger.LogWarning("Intento fallido de login por contraseña erronea para {Email}",dto.Email);
                 return null;
 
             return _tokenService.GenerateToken(usuario);
@@ -108,6 +119,7 @@ namespace ProyectoApi.Application.Services
             var emailExiste = await _usuarioRepository.ExistEmailUpdate(dto.Email,id);
             if(emailExiste)
             {
+                _logger.LogWarning("Intento de actualizar Usuario {UsuarioId} con Email duplicado {Email}",id,dto.Email);
                 return Result.Failure("EmailDuplicado");
             }
 
@@ -118,6 +130,7 @@ namespace ProyectoApi.Application.Services
             try
             {
                 await _usuarioRepository.SaveChangesAsync();
+                _logger.LogInformation("Usuario actualizado con exito con el id {UsuarioId} y el Email {Email}",usuario.Id,usuario.Email);
                 return Result.Success();
 
             }catch(DbUpdateConcurrencyException)
