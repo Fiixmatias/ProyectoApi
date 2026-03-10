@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using ProyectoApi.Application.DTOs;
 using ProyectoApi.Application.Interfaces;
-
+using ProyectoApi.Application.Common;
 
 namespace ProyectoApi.Controllers
 {
@@ -20,11 +20,17 @@ namespace ProyectoApi.Controllers
         public async Task<IActionResult> Login(LoginDto dto)
         {
             var token = await _usuarioService.LoginAsync(dto);
-            if(token == null)
+            if(!token.IsSuccess)
             {
-                return Unauthorized("Credenciales invalidas");
+                return token.Error switch
+                {
+                    "NotFound" => NotFound("Email no registrado"),
+                    "NotActive" => Unauthorized("Usuario no activo"),
+                    "PassWordError" => Unauthorized("Contrseña incorrecta"),
+                    _ => BadRequest("Error desconocido")
+                };
             }
-            return Ok(new {token});
+            return Ok(new {token.Value});
         }
     }
 }

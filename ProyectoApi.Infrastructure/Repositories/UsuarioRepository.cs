@@ -44,7 +44,7 @@ namespace ProyectoApi.Infrastructure.Repositories
         //Obtener Usuario por Email
         public async Task<Usuario?> GetByEmailAsync(string email)
         {
-            return await _context.Usuarios.FirstOrDefaultAsync(u=> u.Email == email);
+            return await _context.Usuarios.Include(u=> u.Rol).FirstOrDefaultAsync(u=> u.Email == email);
         }
 
         //Obtener Usuario por ID

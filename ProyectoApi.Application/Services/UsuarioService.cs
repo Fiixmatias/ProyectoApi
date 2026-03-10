@@ -30,16 +30,18 @@ namespace ProyectoApi.Application.Services
             var existe = await _usuarioRepository.ExistEmail(dto.Email);
 
             if (existe)
-                _logger.LogWarning("Intento de crear usuario con Emial duplicado {Email}",dto.Email);
+            {
+                _logger.LogWarning("Intento de crear usuario con Emial duplicado {Email}", dto.Email);
                 return Result<UsuarioDto>.Failure("EmailDuplicado");
-
+            }
             var usuario = new Usuario
             {
                 Nombre = dto.Nombre,
                 Email = dto.Email,
                 PassWordHash = _passwordHasher.Hash(dto.Password),
                 Activo = true,
-                FechaCreacion = DateTime.UtcNow
+                FechaCreacion = DateTime.UtcNow,
+                RolId = dto.RoleId
             };
 
                  await _usuarioRepository.AddAsync(usuario);
@@ -56,7 +58,7 @@ namespace ProyectoApi.Application.Services
             return Result<UsuarioDto>.Success(usuarioDto);
         }
         // Eliminar Usuario
-        [Authorize(Roles = "Admin")]
+      
         public async Task<bool> DeleteAsync(int id)
         {
             var usuario = await _usuarioRepository.GetByIdAsync(id);
@@ -91,22 +93,30 @@ namespace ProyectoApi.Application.Services
           
         }
         //Login de Usuario
-        public async Task<string?> LoginAsync(LoginDto dto)
+        public async Task<Result<string>> LoginAsync(LoginDto dto)
         {
             var usuario = await _usuarioRepository.GetByEmailAsync(dto.Email);
-               
 
-            if (usuario == null || !usuario.Activo)
-            _logger.LogWarning("Inteto de login fallido para el Email {Email}", dto.Email);
-            return null;
+            if(usuario == null)
+            {
+                _logger.LogWarning("Inteto de login fallido para el Email {Email}", dto.Email);
+                return Result<string>.Failure("NotFound");
+            }
 
+            if(!usuario.Activo)
+            {
+                return Result<string>.Failure("NotActive");
+            }
+           
             bool passwordValida = _passwordHasher.Verify(dto.Password,usuario.PassWordHash);
 
             if (!passwordValida)
-                _logger.LogWarning("Intento fallido de login por contraseña erronea para {Email}",dto.Email);
-                return null;
-
-            return _tokenService.GenerateToken(usuario);
+            {
+                _logger.LogWarning("Intento fallido de login por contraseña erronea para {Email}", dto.Email);
+                return Result<string>.Failure("PassWordError"); ;
+            }
+            
+            return Result<string>.Success(_tokenService.GenerateToken(usuario));
         }
 
         public async Task<Result> UpdateAsync(int id, UpdateUsuarioDto dto)

@@ -11,7 +11,11 @@ using ProyectoApi.Infrastructure.Repositories;
 using System.Text;
 using ProyectoApi.Middleware;
 using Serilog;
+using System.IO;
+using ProyectoApi.Authorization;
 
+// Ensure logs directory exists to avoid IO errors when Serilog opens the file sink
+Directory.CreateDirectory("logs");
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
@@ -75,6 +79,17 @@ builder.Services.AddAuthentication(options =>
 // CONTROLLERS
 // ----------------------------------
 builder.Services.AddControllers();
+
+// ----------------------------------
+// AUTHORIZATION
+// ----------------------------------
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(Policies.ADMIN_ONLY, policy =>
+        policy.RequireRole("Admin"));
+    options.AddPolicy(Policies.USER_OR_ADMIN, policy =>
+        policy.RequireRole("User", "Admin"));
+});
 
 
 // ----------------------------------
