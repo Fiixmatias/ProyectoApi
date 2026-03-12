@@ -10,7 +10,7 @@ namespace ProyectoApi.Application.Interfaces
         Task<UsuarioDto?> GetByIdAsync(int id);
         Task<Result<UsuarioDto>> CreateAsync(CreateUsuarioDto dto);
         Task<Result> UpdateAsync(int id,UpdateUsuarioDto dto);
-        Task<bool> DeleteAsync(int id);
+        Task<Result> DeleteAsync(int id);
 
 
         

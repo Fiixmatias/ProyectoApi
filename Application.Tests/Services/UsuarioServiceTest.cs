@@ -43,7 +43,7 @@ namespace Application.Tests.Services
         public async Task LoginAsync_UserNotFound_ReturnsFailure()
         {
             _usuarioRepositoryMock
-                .Setup(repo => repo.GetByEmailAsync(It.Is<string>(u=>u.Equals(_email)))).ReturnsAsync((Usuario?)null);
+                .Setup(repo => repo.GetByEmailAsync(It.Is<string>(u => u.Equals(_email)))).ReturnsAsync((Usuario?)null);
 
             var request = new LoginDto
             {
@@ -62,7 +62,7 @@ namespace Application.Tests.Services
             var usuario = new UsuarioBuilder().Inactive().Build();
 
             _usuarioRepositoryMock
-                .Setup(repo => repo.GetByEmailAsync(It.Is<string>(u=> u.Equals(_email)))).ReturnsAsync(usuario);
+                .Setup(repo => repo.GetByEmailAsync(It.Is<string>(u => u.Equals(_email)))).ReturnsAsync(usuario);
 
             var request = new LoginDto
             {
@@ -97,7 +97,7 @@ namespace Application.Tests.Services
             var result = await _usuarioService.LoginAsync(request);
 
             result.IsSuccess.Should().BeFalse();
-            _usuarioRepositoryMock.Verify(repo => repo.GetByEmailAsync(It.IsAny<string>()), Times.Once);    
+            _usuarioRepositoryMock.Verify(repo => repo.GetByEmailAsync(It.IsAny<string>()), Times.Once);
         }
 
         [Fact]
@@ -120,13 +120,13 @@ namespace Application.Tests.Services
             };
 
             var result = await _usuarioService.LoginAsync(request);
-              
+
             result.IsSuccess.Should().BeTrue();
             result.Value.Should().Be("token");
 
             _usuarioRepositoryMock.Verify(repo => repo.GetByEmailAsync(_email), Times.Once);
-                _passwordHasherMock.Verify(hasher => hasher.Verify(_password,usuario.PassWordHash), Times.Once);
-                _tokenServiceMock.Verify(service => service.GenerateToken(usuario), Times.Once);
+            _passwordHasherMock.Verify(hasher => hasher.Verify(_password, usuario.PassWordHash), Times.Once);
+            _tokenServiceMock.Verify(service => service.GenerateToken(usuario), Times.Once);
 
 
         }
@@ -158,7 +158,7 @@ namespace Application.Tests.Services
         {
             _usuarioRepositoryMock
                 .Setup(repo => repo.ExistEmail(It.IsAny<string>())).ReturnsAsync(false);
-            _passwordHasherMock.Setup(hasher => hasher.Hash(It.Is<string>(u=>u.Equals(_password)))).Returns("hashedPassword");
+            _passwordHasherMock.Setup(hasher => hasher.Hash(It.Is<string>(u => u.Equals(_password)))).Returns("hashedPassword");
             var request = new CreateUsuarioDto
             {
                 Nombre = "Test",
@@ -169,8 +169,8 @@ namespace Application.Tests.Services
 
             var result = await _usuarioService.CreateAsync(request);
             result.IsSuccess.Should().BeTrue();
-           
-            _passwordHasherMock.Verify(hasher => hasher.Hash(It.Is<string>(u=>u.Equals(_password))), Times.Once);
+
+            _passwordHasherMock.Verify(hasher => hasher.Hash(It.Is<string>(u => u.Equals(_password))), Times.Once);
         }
 
         [Fact]
@@ -196,9 +196,113 @@ namespace Application.Tests.Services
             u.Nombre == "Test" &&
             u.PassWordHash == "HashedPassword" &&
             u.RolId == 1
-            )),Times.Once);
+            )), Times.Once);
 
             _usuarioRepositoryMock.Verify(repo => repo.SaveChangesAsync(), Times.Once);
+        }
+
+        //___________________________TESTING DELETE USUARIO------------------------------
+        //__-----------------------------------------------------------------------------
+
+        [Fact]
+        public async Task DeleteAsync_UserNotFound_ReturnsFailure()
+        {
+
+            var userId = 1;
+            _usuarioRepositoryMock.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync((Usuario?)null);
+            var result = await _usuarioService.DeleteAsync(userId);
+            result.IsSuccess.Should().BeFalse();
+
+            _usuarioRepositoryMock.Verify(r => r.GetByIdAsync(userId), Times.Once);
+            _usuarioRepositoryMock.Verify(r => r.DeleteAsync(It.IsAny<Usuario>()), Times.Never);
+            _usuarioRepositoryMock.Verify(r => r.SaveChangesAsync(), Times.Never);
+
+        }
+
+        [Fact]
+        public async Task DeleteUser_UserExists_RemovesAndSaves()
+        {
+            var userId = 1;
+            var usuario = new UsuarioBuilder().WithId(userId).Build();
+            _usuarioRepositoryMock.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync(usuario);
+
+            var result = await _usuarioService.DeleteAsync(userId);
+
+            result.IsSuccess.Should().BeTrue();
+
+            _usuarioRepositoryMock.Verify(r => r.DeleteAsync(usuario), Times.Once);
+            _usuarioRepositoryMock.Verify(r => r.SaveChangesAsync(), Times.Once);
+        }
+
+        //___________________________TESTING UPDATE USUARIO____________________________
+        //_____________________________________________________________________________
+
+        [Fact]
+        public async Task UpdateUser_UserNotFound_ReturnsFailure()
+        {
+            var userId = 1;
+
+            _usuarioRepositoryMock.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync((Usuario?)null);
+            var request = new UpdateUsuarioDto();
+            var result = await _usuarioService.UpdateAsync(userId, request);
+            result.IsSuccess.Should().BeFalse();
+
+            _usuarioRepositoryMock.Verify(r => r.GetByIdAsync(userId), Times.Once);
+            _usuarioRepositoryMock.Verify(r => r.UpdateAsync(It.IsAny<Usuario>(), It.IsAny<byte[]>()), Times.Never);
+            _usuarioRepositoryMock.Verify(r => r.SaveChangesAsync(), Times.Never);
+
+        }
+
+        [Fact]
+        public async Task UpdateUser_EmailExist_ResultsFailure()
+        {
+            var userid = 1;
+            var existEmail = _email;
+            var usuario = new UsuarioBuilder().WithId(userid).Build();
+            _usuarioRepositoryMock.Setup(r => r.GetByIdAsync(userid)).ReturnsAsync(usuario);
+            var request = new UpdateUsuarioDto();
+            request.Email = existEmail;
+
+            _usuarioRepositoryMock.Setup(r => r.ExistEmailUpdate(request.Email, userid)).ReturnsAsync(true);
+
+            var result = await _usuarioService.UpdateAsync(userid, request);
+            result.IsSuccess.Should().BeFalse();
+
+            _usuarioRepositoryMock.Verify(r => r.GetByIdAsync(userid), Times.Once);
+            _usuarioRepositoryMock.Verify(r => r.ExistEmailUpdate(request.Email, userid), Times.Once);
+            _usuarioRepositoryMock.Verify(r => r.UpdateAsync(It.IsAny<Usuario>(), It.IsAny<byte[]>()), Times.Never);
+            _usuarioRepositoryMock.Verify(r => r.SaveChangesAsync(), Times.Never);
+
+
+        }
+        [Fact]
+        public async Task UpdateUser_ValidRequest_UpdatesAndSaves()
+        {
+            var userId = 1;
+            var usuario = new UsuarioBuilder().WithId(userId).WithEmail("oldEmail@gmail.com").Build();
+
+            _usuarioRepositoryMock.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync(usuario);
+            _usuarioRepositoryMock.Setup(r => r.ExistEmailUpdate(It.IsAny<string>(), It.IsAny<int>())).ReturnsAsync(false);
+
+            var request = new UpdateUsuarioDto
+            {
+                Nombre = "New Name",
+                Email = "New Email",
+                RowVersion = [122]
+            };
+
+            var result = await _usuarioService.UpdateAsync(userId, request);
+
+            result.IsSuccess.Should().BeTrue();
+
+            _usuarioRepositoryMock.Verify(r => r.GetByIdAsync(userId), Times.Once);
+            _usuarioRepositoryMock.Verify(r => r.ExistEmailUpdate(request.Email, userId), Times.Once);
+            _usuarioRepositoryMock.Verify(r => r.UpdateAsync(It.Is<Usuario>(u =>
+            u.Nombre == request.Nombre &&
+            u.Email == request.Email
+            ), request.RowVersion), Times.Once);
+
+            _usuarioRepositoryMock.Verify(r => r.SaveChangesAsync(), Times.Once);
         }
     }
 }

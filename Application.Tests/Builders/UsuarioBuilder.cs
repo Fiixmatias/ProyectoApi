@@ -43,6 +43,12 @@ namespace Application.Tests.Builders
             _usuario.PassWordHash = hash;
             return this;
         }
+        public UsuarioBuilder WithId (int id)
+        {
+            _usuario.Id = id;
+            return this;
+        }
+
         public Usuario Build()
         {
             return _usuario;

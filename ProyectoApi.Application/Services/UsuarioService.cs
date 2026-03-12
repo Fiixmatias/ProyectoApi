@@ -59,18 +59,18 @@ namespace ProyectoApi.Application.Services
         }
         // Eliminar Usuario
       
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<Result> DeleteAsync(int id)
         {
             var usuario = await _usuarioRepository.GetByIdAsync(id);
             if(usuario == null){
-                return false;
+                return Result.Failure("UserNotfound") ;
             }
             await _usuarioRepository.DeleteAsync(usuario);
        
             await _usuarioRepository.SaveChangesAsync();
             _logger.LogInformation("Usuario Eliminado con el id {UsuarioId}", usuario.Id);
 
-            return true;
+            return Result.Success();
         }
         //Obtener Usuario por ID
         public async Task<UsuarioDto?> GetByIdAsync(int id)

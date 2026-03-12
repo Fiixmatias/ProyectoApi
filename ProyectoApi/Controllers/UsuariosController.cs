@@ -100,8 +100,8 @@ namespace ProyectoApi.Controllers
         [Authorize(Policy = Policies.ADMIN_ONLY)]
         public async Task<IActionResult> DeleteUsuario(int id)
         {
-            var eliminado = await _usuarioService.DeleteAsync(id);
-            if(!eliminado)
+            var result = await _usuarioService.DeleteAsync(id);
+            if(!result.IsSuccess)
             {
                 return NotFound();
             }
