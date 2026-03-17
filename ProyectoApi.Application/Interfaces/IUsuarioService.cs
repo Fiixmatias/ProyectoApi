@@ -6,11 +6,11 @@ namespace ProyectoApi.Application.Interfaces
 {
     public interface IUsuarioService
     {
-        Task<string?> LoginAsync(LoginDto dto);
+        Task<Result<string>> LoginAsync(LoginDto dto);
         Task<UsuarioDto?> GetByIdAsync(int id);
         Task<Result<UsuarioDto>> CreateAsync(CreateUsuarioDto dto);
         Task<Result> UpdateAsync(int id,UpdateUsuarioDto dto);
-        Task<bool> DeleteAsync(int id);
+        Task<Result> DeleteAsync(int id);
 
 
         

@@ -13,5 +13,7 @@ namespace ProyectoApi.Application.DTOs
         [EmailAddress (ErrorMessage ="Formato de email requerido")]
         public string Email { get; set; }
         public string Password { get; set; }
+        [Required(ErrorMessage = "Campo requerido")]
+        public int RoleId { get; set; }
     }
 }

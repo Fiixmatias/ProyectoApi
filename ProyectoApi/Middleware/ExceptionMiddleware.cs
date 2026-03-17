@@ -8,7 +8,7 @@ namespace ProyectoApi.Middleware
         private readonly RequestDelegate _next;
         private readonly ILogger<ExceptionMiddleware> _logger;
 
-        public ExceptionMiddleware(RequestDelegate next,ILogger<ExceptionMiddleware> logger)
+        public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
         {
             _next = next;
             _logger = logger;
@@ -20,7 +20,8 @@ namespace ProyectoApi.Middleware
             try
             {
                 await _next(context);
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "UnHandled exception occurred");
                 context.Response.ContentType = "application/json";
@@ -29,7 +30,7 @@ namespace ProyectoApi.Middleware
                 var response = new
                 {
                     message = "Ha ocurrido un error interno.",
-                    detail = context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment() ? ex.Message : null                    
+                    detail = context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment() ? ex.Message : null
                 };
                 var json = JsonSerializer.Serialize(response);
                 await context.Response.WriteAsync(json);

@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ProyectoApi.Application.Common;
 using ProyectoApi.Application.DTOs;
 using ProyectoApi.Application.Interfaces;
+using ProyectoApi.Authorization;
+using System.Security.Claims;
 
 namespace ProyectoApi.Controllers
 {
@@ -12,14 +15,14 @@ namespace ProyectoApi.Controllers
         private readonly IUsuarioService _usuarioService;
 
         public UsuariosController(IUsuarioService usuarioService)
+
+
         {
             _usuarioService = usuarioService;
         }
 
-        [HttpGet]
-        [Authorize]
-        
         [HttpGet("{id}")]
+        [Authorize(Policy = Policies.ADMIN_ONLY)]
         public async Task<ActionResult<UsuarioDto>> getUsuario(int id)
         {
             var usuarioDto = await _usuarioService.GetByIdAsync(id);
@@ -31,6 +34,7 @@ namespace ProyectoApi.Controllers
         }
 
         [HttpPost]
+        [Authorize(Policy = Policies.ADMIN_ONLY)]
         public async Task<ActionResult<UsuarioDto>> createUsuario(CreateUsuarioDto dto)
         {
             var result = await _usuarioService.CreateAsync(dto);
@@ -50,8 +54,33 @@ namespace ProyectoApi.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Policy = Policies.USER_OR_ADMIN)]
         public async Task<IActionResult> UpdateUsuario(int id , UpdateUsuarioDto dto)
         {
+            var userId = 0;
+            try
+            {
+                userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            }
+            catch
+            {
+                return Result.Failure("InvalidUserId").Error switch
+                {
+                    "InvalidUserId" => BadRequest("El ID del usuario no es válido."),
+                    _ => StatusCode(400)
+                };
+            }
+            
+            if(userId != id)
+            {
+                return Result.Failure("InvalidUserId").Error switch
+                {
+                    "InvalidUserId" => BadRequest("No tienes permiso para actualizar este usuario."),
+                    _ => StatusCode(400)
+                };
+            }
+            
+
             var result = await _usuarioService.UpdateAsync(id, dto);
 
             if (!result.IsSuccess)
@@ -68,10 +97,11 @@ namespace ProyectoApi.Controllers
             return NoContent();
         }
         [HttpDelete("{id}")]
+        [Authorize(Policy = Policies.ADMIN_ONLY)]
         public async Task<IActionResult> DeleteUsuario(int id)
         {
-            var eliminado = await _usuarioService.DeleteAsync(id);
-            if(!eliminado)
+            var result = await _usuarioService.DeleteAsync(id);
+            if(!result.IsSuccess)
             {
                 return NotFound();
             }
